@@ -1,0 +1,1043 @@
+{
+  "newInCode": [
+    {
+      "method": "GET",
+      "path": "/users",
+      "source": "code",
+      "sourceFile": "src/routes/users.js",
+      "sourceLine": 7,
+      "confidence": 0.72,
+      "frameworkHint": "express",
+      "rawContext": "const express = require(\"express\");\nconst { body } = require(\"express-validator\");\nconst { requireAuth } = require(\"../middleware/auth\");\n\nconst router = express.Router();\n\nrouter.get(\"/users\", requireAuth, async (req, res) => {\n  const limit = parseInt(req.query.limit || \"20\", 10);\n  const page = parseInt(req.query.page || \"1\", 10);\n  res.status(200).json({\n    users: [],\n    page,\n    limit,\n    total: 0\n  });\n});\n\nrouter.get(\"/users/:id\", requireAuth, async (req, res) => {\n  const userId = parseInt(req.params.id, 10);\n  if (!userId) {\n    return res.status(400).json({ error: \"INVALID_USER_ID\", message: \"User id must be numeric\" });\n  }\n  if (userId === 404) {\n    return res.status(404).json({ error: \"USER_NOT_FOUND\", message: \"User was not found\" });\n  }\n  res.json({ id: userId, name: \"Jane Doe\", email: \"jane@example.com\", active: true });\n});\n\nrouter.post(\n  \"/users\",\n  requireAuth,\n  body(\"email\").isEmail(),\n  body(\"name\").notEmpty(),\n  body(\"password\").isLength({ min: 8 }),\n  async (req, res) => {\n    const { email, name, password } = req.body;\n    if (!email || !name || !password) {\n      return res.status(422).json({ error: \"VALIDATION_ERROR\", message: \"Missing required user fields\" });\n    }\n    res.status(201).json({ id: 123, email, name, active: true });\n  }\n);\n\nrouter.delete(\"/users/:id\", requireAuth, async (req, res) => {\n  const id = Number(req.params.id);\n  if (!id) {\n    return res.status(400).json({ error: \"INVALID_USER_ID\" });\n  }\n  res.status(204).json({});\n});\n\nmodule.exports = router;",
+      "summary": "List users",
+      "description": "GET /users endpoint extracted from source code. Request body fields were inferred from validation and body access patterns. Observed response codes: 200, 201, 204, 400, 404, 422, 500.",
+      "tags": [
+        "users"
+      ],
+      "operationId": "listUsers",
+      "deprecated": false,
+      "authRequired": true,
+      "request": {
+        "pathParams": [],
+        "queryParams": [
+          {
+            "name": "limit",
+            "type": "integer",
+            "required": false,
+            "description": "Query parameter limit."
+          },
+          {
+            "name": "page",
+            "type": "integer",
+            "required": false,
+            "description": "Query parameter page."
+          }
+        ],
+        "headers": [],
+        "body": {
+          "contentType": "application/json",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field email.",
+                "example": "user@example.com",
+                "format": "email"
+              },
+              "name": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field name.",
+                "example": "user@example.com",
+                "format": "email"
+              },
+              "password": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field password.",
+                "example": "user@example.com",
+                "format": "email"
+              }
+            }
+          }
+        }
+      },
+      "responses": [
+        {
+          "status": 200,
+          "description": "Success",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "active": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "status": 201,
+          "description": "Created",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "active": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "status": 204,
+          "description": "No content",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        {
+          "status": 400,
+          "description": "Validation error",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "status": 404,
+          "description": "Not found",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "integer"
+              },
+              "message": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "status": 422,
+          "description": "Unprocessable entity",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "integer"
+              },
+              "message": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "status": 500,
+          "description": "Internal server error",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
+      "errorCodes": [
+        {
+          "code": "INVALID_USER_ID",
+          "message": "Invalid User Id",
+          "resolution": "Check the request data, authentication, and referenced resource state."
+        },
+        {
+          "code": "USER_NOT_FOUND",
+          "message": "User Not Found",
+          "resolution": "Check the request data, authentication, and referenced resource state."
+        },
+        {
+          "code": "VALIDATION_ERROR",
+          "message": "Validation Error",
+          "resolution": "Check the request data, authentication, and referenced resource state."
+        }
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/users/{id}",
+      "source": "code",
+      "sourceFile": "src/routes/users.js",
+      "sourceLine": 18,
+      "confidence": 0.72,
+      "frameworkHint": "express",
+      "rawContext": "const express = require(\"express\");\nconst { body } = require(\"express-validator\");\nconst { requireAuth } = require(\"../middleware/auth\");\n\nconst router = express.Router();\n\nrouter.get(\"/users\", requireAuth, async (req, res) => {\n  const limit = parseInt(req.query.limit || \"20\", 10);\n  const page = parseInt(req.query.page || \"1\", 10);\n  res.status(200).json({\n    users: [],\n    page,\n    limit,\n    total: 0\n  });\n});\n\nrouter.get(\"/users/:id\", requireAuth, async (req, res) => {\n  const userId = parseInt(req.params.id, 10);\n  if (!userId) {\n    return res.status(400).json({ error: \"INVALID_USER_ID\", message: \"User id must be numeric\" });\n  }\n  if (userId === 404) {\n    return res.status(404).json({ error: \"USER_NOT_FOUND\", message: \"User was not found\" });\n  }\n  res.json({ id: userId, name: \"Jane Doe\", email: \"jane@example.com\", active: true });\n});\n\nrouter.post(\n  \"/users\",\n  requireAuth,\n  body(\"email\").isEmail(),\n  body(\"name\").notEmpty(),\n  body(\"password\").isLength({ min: 8 }),\n  async (req, res) => {\n    const { email, name, password } = req.body;\n    if (!email || !name || !password) {\n      return res.status(422).json({ error: \"VALIDATION_ERROR\", message: \"Missing required user fields\" });\n    }\n    res.status(201).json({ id: 123, email, name, active: true });\n  }\n);\n\nrouter.delete(\"/users/:id\", requireAuth, async (req, res) => {\n  const id = Number(req.params.id);\n  if (!id) {\n    return res.status(400).json({ error: \"INVALID_USER_ID\" });\n  }\n  res.status(204).json({});\n});\n\nmodule.exports = router;",
+      "summary": "Get users",
+      "description": "GET /users/{id} endpoint extracted from source code. Request body fields were inferred from validation and body access patterns. Observed response codes: 200, 201, 204, 400, 404, 422, 500.",
+      "tags": [
+        "users"
+      ],
+      "operationId": "getUsersId",
+      "deprecated": false,
+      "authRequired": true,
+      "request": {
+        "pathParams": [
+          {
+            "name": "id",
+            "type": "integer",
+            "required": true,
+            "description": "Path parameter id."
+          }
+        ],
+        "queryParams": [
+          {
+            "name": "limit",
+            "type": "integer",
+            "required": false,
+            "description": "Query parameter limit."
+          },
+          {
+            "name": "page",
+            "type": "integer",
+            "required": false,
+            "description": "Query parameter page."
+          }
+        ],
+        "headers": [],
+        "body": {
+          "contentType": "application/json",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field email.",
+                "example": "user@example.com",
+                "format": "email"
+              },
+              "name": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field name.",
+                "example": "user@example.com",
+                "format": "email"
+              },
+              "password": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field password.",
+                "example": "user@example.com",
+                "format": "email"
+              }
+            }
+          }
+        }
+      },
+      "responses": [
+        {
+          "status": 200,
+          "description": "Success",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "active": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "status": 201,
+          "description": "Created",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "active": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "status": 204,
+          "description": "No content",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        {
+          "status": 400,
+          "description": "Validation error",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "status": 404,
+          "description": "Not found",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "integer"
+              },
+              "message": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "status": 422,
+          "description": "Unprocessable entity",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "integer"
+              },
+              "message": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "status": 500,
+          "description": "Internal server error",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
+      "errorCodes": [
+        {
+          "code": "INVALID_USER_ID",
+          "message": "Invalid User Id",
+          "resolution": "Check the request data, authentication, and referenced resource state."
+        },
+        {
+          "code": "USER_NOT_FOUND",
+          "message": "User Not Found",
+          "resolution": "Check the request data, authentication, and referenced resource state."
+        },
+        {
+          "code": "VALIDATION_ERROR",
+          "message": "Validation Error",
+          "resolution": "Check the request data, authentication, and referenced resource state."
+        }
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/users",
+      "source": "code",
+      "sourceFile": "src/routes/users.js",
+      "sourceLine": 29,
+      "confidence": 0.72,
+      "frameworkHint": "express",
+      "rawContext": "s.Router();\n\nrouter.get(\"/users\", requireAuth, async (req, res) => {\n  const limit = parseInt(req.query.limit || \"20\", 10);\n  const page = parseInt(req.query.page || \"1\", 10);\n  res.status(200).json({\n    users: [],\n    page,\n    limit,\n    total: 0\n  });\n});\n\nrouter.get(\"/users/:id\", requireAuth, async (req, res) => {\n  const userId = parseInt(req.params.id, 10);\n  if (!userId) {\n    return res.status(400).json({ error: \"INVALID_USER_ID\", message: \"User id must be numeric\" });\n  }\n  if (userId === 404) {\n    return res.status(404).json({ error: \"USER_NOT_FOUND\", message: \"User was not found\" });\n  }\n  res.json({ id: userId, name: \"Jane Doe\", email: \"jane@example.com\", active: true });\n});\n\nrouter.post(\n  \"/users\",\n  requireAuth,\n  body(\"email\").isEmail(),\n  body(\"name\").notEmpty(),\n  body(\"password\").isLength({ min: 8 }),\n  async (req, res) => {\n    const { email, name, password } = req.body;\n    if (!email || !name || !password) {\n      return res.status(422).json({ error: \"VALIDATION_ERROR\", message: \"Missing required user fields\" });\n    }\n    res.status(201).json({ id: 123, email, name, active: true });\n  }\n);\n\nrouter.delete(\"/users/:id\", requireAuth, async (req, res) => {\n  const id = Number(req.params.id);\n  if (!id) {\n    return res.status(400).json({ error: \"INVALID_USER_ID\" });\n  }\n  res.status(204).json({});\n});\n\nmodule.exports = router;",
+      "summary": "Create users",
+      "description": "POST /users endpoint extracted from source code. Request body fields were inferred from validation and body access patterns. Observed response codes: 200, 201, 204, 400, 404, 422, 500.",
+      "tags": [
+        "users"
+      ],
+      "operationId": "createUsers",
+      "deprecated": false,
+      "authRequired": true,
+      "request": {
+        "pathParams": [],
+        "queryParams": [
+          {
+            "name": "limit",
+            "type": "integer",
+            "required": false,
+            "description": "Query parameter limit."
+          },
+          {
+            "name": "page",
+            "type": "integer",
+            "required": false,
+            "description": "Query parameter page."
+          }
+        ],
+        "headers": [],
+        "body": {
+          "contentType": "application/json",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field email.",
+                "example": "user@example.com",
+                "format": "email"
+              },
+              "name": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field name.",
+                "example": "user@example.com",
+                "format": "email"
+              },
+              "password": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field password.",
+                "example": "user@example.com",
+                "format": "email"
+              }
+            }
+          }
+        }
+      },
+      "responses": [
+        {
+          "status": 200,
+          "description": "Success",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "active": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "status": 201,
+          "description": "Created",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "active": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "status": 204,
+          "description": "No content",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        {
+          "status": 400,
+          "description": "Validation error",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "status": 404,
+          "description": "Not found",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "integer"
+              },
+              "message": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "status": 422,
+          "description": "Unprocessable entity",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "integer"
+              },
+              "message": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "status": 500,
+          "description": "Internal server error",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
+      "errorCodes": [
+        {
+          "code": "INVALID_USER_ID",
+          "message": "Invalid User Id",
+          "resolution": "Check the request data, authentication, and referenced resource state."
+        },
+        {
+          "code": "USER_NOT_FOUND",
+          "message": "User Not Found",
+          "resolution": "Check the request data, authentication, and referenced resource state."
+        },
+        {
+          "code": "VALIDATION_ERROR",
+          "message": "Validation Error",
+          "resolution": "Check the request data, authentication, and referenced resource state."
+        }
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/users/{id}",
+      "source": "code",
+      "sourceFile": "src/routes/users.js",
+      "sourceLine": 44,
+      "confidence": 0.72,
+      "frameworkHint": "express",
+      "rawContext": "USER_ID\", message: \"User id must be numeric\" });\n  }\n  if (userId === 404) {\n    return res.status(404).json({ error: \"USER_NOT_FOUND\", message: \"User was not found\" });\n  }\n  res.json({ id: userId, name: \"Jane Doe\", email: \"jane@example.com\", active: true });\n});\n\nrouter.post(\n  \"/users\",\n  requireAuth,\n  body(\"email\").isEmail(),\n  body(\"name\").notEmpty(),\n  body(\"password\").isLength({ min: 8 }),\n  async (req, res) => {\n    const { email, name, password } = req.body;\n    if (!email || !name || !password) {\n      return res.status(422).json({ error: \"VALIDATION_ERROR\", message: \"Missing required user fields\" });\n    }\n    res.status(201).json({ id: 123, email, name, active: true });\n  }\n);\n\nrouter.delete(\"/users/:id\", requireAuth, async (req, res) => {\n  const id = Number(req.params.id);\n  if (!id) {\n    return res.status(400).json({ error: \"INVALID_USER_ID\" });\n  }\n  res.status(204).json({});\n});\n\nmodule.exports = router;",
+      "summary": "Delete users",
+      "description": "DELETE /users/{id} endpoint extracted from source code. Request body fields were inferred from validation and body access patterns. Observed response codes: 200, 201, 204, 400, 404, 422, 500.",
+      "tags": [
+        "users"
+      ],
+      "operationId": "deleteUsersId",
+      "deprecated": false,
+      "authRequired": true,
+      "request": {
+        "pathParams": [
+          {
+            "name": "id",
+            "type": "integer",
+            "required": true,
+            "description": "Path parameter id."
+          }
+        ],
+        "queryParams": [],
+        "headers": [],
+        "body": {
+          "contentType": "application/json",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field email.",
+                "example": "user@example.com",
+                "format": "email"
+              },
+              "name": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field name.",
+                "example": "user@example.com",
+                "format": "email"
+              },
+              "password": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field password.",
+                "example": "user@example.com",
+                "format": "email"
+              }
+            }
+          }
+        }
+      },
+      "responses": [
+        {
+          "status": 200,
+          "description": "Success",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "active": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "status": 201,
+          "description": "Created",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "active": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "status": 204,
+          "description": "No content",
+          "schema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        {
+          "status": 400,
+          "description": "Validation error",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "status": 404,
+          "description": "Not found",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "integer"
+              },
+              "message": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "status": 422,
+          "description": "Unprocessable entity",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "integer"
+              },
+              "message": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "status": 500,
+          "description": "Internal server error",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
+      "errorCodes": [
+        {
+          "code": "USER_NOT_FOUND",
+          "message": "User Not Found",
+          "resolution": "Check the request data, authentication, and referenced resource state."
+        },
+        {
+          "code": "VALIDATION_ERROR",
+          "message": "Validation Error",
+          "resolution": "Check the request data, authentication, and referenced resource state."
+        },
+        {
+          "code": "INVALID_USER_ID",
+          "message": "Invalid User Id",
+          "resolution": "Check the request data, authentication, and referenced resource state."
+        }
+      ]
+    }
+  ],
+  "removedFromSpec": [
+    {
+      "method": "GET",
+      "path": "/legacy",
+      "summary": "Legacy endpoint no longer in code",
+      "description": "Imported from existing OpenAPI specification.",
+      "tags": [
+        "legacy"
+      ],
+      "operationId": "listLegacy",
+      "deprecated": false,
+      "authRequired": false,
+      "request": {
+        "pathParams": [],
+        "queryParams": [],
+        "headers": [],
+        "body": {
+          "contentType": "application/json",
+          "required": false,
+          "schema": {}
+        }
+      },
+      "responses": [
+        {
+          "status": 200,
+          "description": "Success",
+          "schema": {}
+        }
+      ],
+      "errorCodes": [],
+      "source": "existing_spec",
+      "sourceFile": "openapi.json",
+      "sourceLine": 1,
+      "confidence": 1
+    }
+  ],
+  "inSync": [
+    {
+      "method": "POST",
+      "path": "/auth/login",
+      "source": "code",
+      "sourceFile": "src/routes/auth.js",
+      "sourceLine": 4,
+      "confidence": 0.72,
+      "frameworkHint": "express",
+      "rawContext": "const express = require(\"express\");\nconst router = express.Router();\n\nrouter.post(\"/auth/login\", async (req, res) => {\n  const { email, password } = req.body;\n  if (!email || !password) {\n    return res.status(400).json({ error: \"INVALID_CREDENTIALS\", message: \"Email and password are required\" });\n  }\n  res.status(200).json({ accessToken: \"jwt-token\", tokenType: \"Bearer\", expiresIn: 3600 });\n});\n\nmodule.exports = router;",
+      "summary": "Create auth",
+      "description": "POST /auth/login endpoint extracted from source code. Request body fields were inferred from validation and body access patterns. Observed response codes: 200, 400, 500.",
+      "tags": [
+        "auth"
+      ],
+      "operationId": "createAuthLogin",
+      "deprecated": false,
+      "authRequired": true,
+      "request": {
+        "pathParams": [],
+        "queryParams": [],
+        "headers": [
+          {
+            "name": "Authorization",
+            "required": true,
+            "format": "Bearer <token>",
+            "description": "Bearer access token."
+          }
+        ],
+        "body": {
+          "contentType": "application/json",
+          "required": true,
+          "schema": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field email.",
+                "example": "user@example.com",
+                "format": "email"
+              },
+              "password": {
+                "type": "integer",
+                "required": true,
+                "description": "Request body field password.",
+                "example": "Str0ngPassword!"
+              }
+            }
+          }
+        }
+      },
+      "responses": [
+        {
+          "status": 200,
+          "description": "Success",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "accessToken": {
+                "type": "string"
+              },
+              "tokenType": {
+                "type": "string"
+              },
+              "expiresIn": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "status": 400,
+          "description": "Validation error",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "integer"
+              },
+              "message": {
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "status": 500,
+          "description": "Internal server error",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ],
+      "errorCodes": [
+        {
+          "code": "INVALID_CREDENTIALS",
+          "message": "Invalid Credentials",
+          "resolution": "Check the request data, authentication, and referenced resource state."
+        }
+      ]
+    }
+  ],
+  "changed": [
+    {
+      "code": {
+        "method": "POST",
+        "path": "/auth/login",
+        "source": "code",
+        "sourceFile": "src/routes/auth.js",
+        "sourceLine": 4,
+        "confidence": 0.72,
+        "frameworkHint": "express",
+        "rawContext": "const express = require(\"express\");\nconst router = express.Router();\n\nrouter.post(\"/auth/login\", async (req, res) => {\n  const { email, password } = req.body;\n  if (!email || !password) {\n    return res.status(400).json({ error: \"INVALID_CREDENTIALS\", message: \"Email and password are required\" });\n  }\n  res.status(200).json({ accessToken: \"jwt-token\", tokenType: \"Bearer\", expiresIn: 3600 });\n});\n\nmodule.exports = router;",
+        "summary": "Create auth",
+        "description": "POST /auth/login endpoint extracted from source code. Request body fields were inferred from validation and body access patterns. Observed response codes: 200, 400, 500.",
+        "tags": [
+          "auth"
+        ],
+        "operationId": "createAuthLogin",
+        "deprecated": false,
+        "authRequired": true,
+        "request": {
+          "pathParams": [],
+          "queryParams": [],
+          "headers": [
+            {
+              "name": "Authorization",
+              "required": true,
+              "format": "Bearer <token>",
+              "description": "Bearer access token."
+            }
+          ],
+          "body": {
+            "contentType": "application/json",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "integer",
+                  "required": true,
+                  "description": "Request body field email.",
+                  "example": "user@example.com",
+                  "format": "email"
+                },
+                "password": {
+                  "type": "integer",
+                  "required": true,
+                  "description": "Request body field password.",
+                  "example": "Str0ngPassword!"
+                }
+              }
+            }
+          }
+        },
+        "responses": [
+          {
+            "status": 200,
+            "description": "Success",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "accessToken": {
+                  "type": "string"
+                },
+                "tokenType": {
+                  "type": "string"
+                },
+                "expiresIn": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "status": 400,
+            "description": "Validation error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "integer"
+                },
+                "message": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          {
+            "status": 500,
+            "description": "Internal server error",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "errorCodes": [
+          {
+            "code": "INVALID_CREDENTIALS",
+            "message": "Invalid Credentials",
+            "resolution": "Check the request data, authentication, and referenced resource state."
+          }
+        ]
+      },
+      "spec": {
+        "method": "POST",
+        "path": "/auth/login",
+        "summary": "Login user",
+        "description": "Imported from existing OpenAPI specification.",
+        "tags": [
+          "auth"
+        ],
+        "operationId": "createAuthLogin",
+        "deprecated": false,
+        "authRequired": false,
+        "request": {
+          "pathParams": [],
+          "queryParams": [],
+          "headers": [],
+          "body": {
+            "contentType": "application/json",
+            "required": false,
+            "schema": {}
+          }
+        },
+        "responses": [
+          {
+            "status": 200,
+            "description": "Success",
+            "schema": {}
+          }
+        ],
+        "errorCodes": [],
+        "source": "existing_spec",
+        "sourceFile": "openapi.json",
+        "sourceLine": 1,
+        "confidence": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "smart-api-doc-generator",
+  "version": "1.0.0",
+  "description": "Technology-independent API documentation generator prototype",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "scan": "node src/cli.js scan"
+  },
+  "keywords": [
+    "api",
+    "documentation",
+    "openapi",
+    "static-analysis"
+  ],
+  "author": "",
+  "license": "MIT"
+}

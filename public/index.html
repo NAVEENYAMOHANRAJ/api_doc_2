@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Smart API Documentation Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="shell">
+
+  <!-- ═══════════════════════════════════════════
+       SIDEBAR
+  ═══════════════════════════════════════════ -->
+  <aside class="sidebar" id="sidebar">
+
+    <!-- Brand -->
+    <div class="brand">
+      <div class="brand-badge">&lt;/&gt;</div>
+      <div>
+        <div class="brand-name">Smart API Docs</div>
+        <div class="brand-ver">v1.0 · Production</div>
+      </div>
+    </div>
+
+    <!-- Endpoint search (shown after scan) -->
+    <input class="sb-search" id="sbSearch"
+           placeholder="🔍  Search endpoints…"
+           oninput="filterSidebarNav(this.value)">
+
+    <!-- ── Source Input Card ── -->
+    <div class="sb-card" id="inputCard">
+      <div class="sb-card-hd">
+        <span>📂</span><span class="sb-card-title">Source Input</span>
+      </div>
+
+      <div class="inp-tabs">
+        <button class="itab active" data-tab="git">Git URL</button>
+        <button class="itab" data-tab="path">Local Path</button>
+        <button class="itab" data-tab="upload">Upload</button>
+      </div>
+
+      <!-- Git pane -->
+      <div class="ipane active" id="ipane-git">
+        <label class="flabel">Repository URL</label>
+        <input id="gitUrl" class="finput" placeholder="https://github.com/user/repo.git" autocomplete="off">
+
+        <label class="flabel mt10">
+          Personal Access Token
+          <span class="flabel-hint">(private repos)</span>
+        </label>
+        <div class="pat-row">
+          <input id="patToken" class="finput mono" type="password"
+                 placeholder="ghp_xxxxxxxxxxxx" autocomplete="off">
+          <button class="eye-btn" onclick="togglePAT()" title="Show / hide">👁</button>
+        </div>
+        <p class="pat-note">
+          Token is only used in the clone URL — never stored.<br>
+          GitHub: <code>Settings → Developer settings → PAT</code>
+        </p>
+        <button class="btn-run" id="btnGit">⚡ Clone &amp; Analyze</button>
+      </div>
+
+      <!-- Path pane -->
+      <div class="ipane" id="ipane-path">
+        <label class="flabel">Absolute path to codebase</label>
+        <input id="localPath" class="finput mono"
+               placeholder="C:\projects\my-api   or   /home/user/api">
+        <button class="btn-run" id="btnPath">⚡ Analyze Path</button>
+      </div>
+
+      <!-- Upload pane -->
+      <div class="ipane" id="ipane-upload">
+        <label class="flabel">Select project folder</label>
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="folderFiles" webkitdirectory multiple>
+          <span id="dropLabel">📁 Click or drag a folder here</span>
+        </div>
+        <button class="btn-run" id="btnUpload">⚡ Analyze Upload</button>
+      </div>
+    </div><!-- /inputCard -->
+
+    <!-- ── Scan Summary (hidden until scan) ── -->
+    <div class="sb-card" id="summaryCard" style="display:none">
+      <div class="sb-card-hd"><span>📊</span><span class="sb-card-title">Scan Summary</span></div>
+      <div class="stat-grid4">
+        <div class="stat-cell"><span class="stat-n" id="stEndpoints">—</span><span class="stat-l">Endpoints</span></div>
+        <div class="stat-cell"><span class="stat-n" id="stFiles">—</span><span class="stat-l">Files</span></div>
+        <div class="stat-cell"><span class="stat-n" id="stAuth">—</span><span class="stat-l">Auth</span></div>
+        <div class="stat-cell"><span class="stat-n" id="stDrift">—</span><span class="stat-l">Drift</span></div>
+      </div>
+      <div class="tag-pills" id="tagPills"></div>
+    </div>
+
+    <!-- ── Exports (hidden until scan) ── -->
+    <div class="sb-card" id="exportCard" style="display:none">
+      <div class="sb-card-hd"><span>⬇</span><span class="sb-card-title">Export</span></div>
+      <div class="export-grid">
+        <a id="expJson"    class="exp-btn off">OpenAPI JSON</a>
+        <a id="expYaml"    class="exp-btn off">OpenAPI YAML</a>
+        <a id="expMd"      class="exp-btn off">Markdown</a>
+        <a id="expHtml"    class="exp-btn off" target="_blank">HTML Docs</a>
+        <a id="expPostman" class="exp-btn off">Postman</a>
+        <a id="expDrift"   class="exp-btn off">Drift JSON</a>
+      </div>
+    </div>
+
+    <!-- ── Docs Nav (hidden until scan) ── -->
+    <div id="docsNavWrap" style="display:none">
+      <div class="sb-section-label">Documentation</div>
+      <div class="docs-nav">
+        <button class="dnav-btn active" id="dnav-overview"  onclick="showDocPage('overview')">📊 Overview</button>
+        <button class="dnav-btn"        id="dnav-auth"      onclick="showDocPage('auth')">🔒 Authentication</button>
+        <button class="dnav-btn"        id="dnav-endpoint"  onclick="showDocPage('endpoint')">📡 Endpoints</button>
+        <button class="dnav-btn"        id="dnav-models"    onclick="showDocPage('models')">🗄 Data Models</button>
+        <button class="dnav-btn"        id="dnav-bizlogic"  onclick="showDocPage('bizlogic')">⚙ Business Logic</button>
+        <button class="dnav-btn"        id="dnav-security"  onclick="showDocPage('security')">🛡 Security</button>
+        <button class="dnav-btn"        id="dnav-testing"   onclick="showDocPage('testing')">🧪 API Testing</button>
+        <button class="dnav-btn"        id="dnav-errors"    onclick="showDocPage('errors')">⚠ Error Handling</button>
+        <button class="dnav-btn"        id="dnav-perf"      onclick="showDocPage('perf')">🚀 Performance</button>
+        <button class="dnav-btn"        id="dnav-deploy"    onclick="showDocPage('deploy')">📦 Deployment</button>
+        <button class="dnav-btn"        id="dnav-summary"   onclick="showDocPage('summary')">📋 API Summary</button>
+      </div>
+
+      <div class="sb-section-label" style="margin-top:6px">Endpoints</div>
+      <div id="epNavGroups"></div>
+    </div>
+
+    <!-- ── Status ── -->
+    <div class="sb-status">
+      <div class="sb-status-dot" id="statusDot"></div>
+      <div>
+        <div class="sb-status-val" id="statusVal">Ready</div>
+        <div class="sb-status-sub" id="statusSub">Awaiting scan</div>
+      </div>
+    </div>
+
+  </aside><!-- /sidebar -->
+
+  <!-- ═══════════════════════════════════════════
+       MAIN COLUMN
+  ═══════════════════════════════════════════ -->
+  <div class="main-col">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="topbar-crumb" id="topCrumb">Home</div>
+      <div class="topbar-right" id="topRight"></div>
+    </div>
+
+    <!-- ────────────────── LANDING ────────────────── -->
+    <div id="viewLanding" class="view active">
+      <div class="landing-wrap">
+        <div class="landing-badge">&lt;/&gt;</div>
+        <h1 class="landing-h1">Smart API Documentation Generator</h1>
+        <p class="landing-sub">
+          Point to a Git URL, local path, or upload source files —<br>
+          get production-grade API docs with all 11 sections, OpenAPI 3.1,<br>
+          Postman collection, Markdown, drift report &amp; interactive dashboard.
+        </p>
+        <div class="landing-chips">
+          <span class="chip">🔍 Route extraction</span>
+          <span class="chip">🔒 Auth detection</span>
+          <span class="chip">📦 OpenAPI 3.1</span>
+          <span class="chip">🔀 Drift report</span>
+          <span class="chip">🌐 Multi-framework</span>
+          <span class="chip">📋 11-section docs</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ────────────────── LOADING ────────────────── -->
+    <div id="viewLoading" class="view" style="display:none">
+      <div class="loading-wrap">
+        <div class="spin-ring"></div>
+        <div class="loading-msg" id="loadMsg">Analyzing…</div>
+        <div class="loading-sub">This may take a few seconds for large repos</div>
+      </div>
+    </div>
+
+    <!-- ────────────────── DOCS (all 11 sections) ────────────────── -->
+    <div id="viewDocs" style="display:none; flex:1; overflow:hidden; flex-direction:column;">
+
+      <!-- Filter bar (shown only on overview) -->
+      <div class="filter-bar" id="filterBar" style="display:none">
+        <div class="mfilters" id="mfilters">
+          <button class="mf-btn active" data-m="">All</button>
+          <button class="mf-btn GET"    data-m="GET">GET</button>
+          <button class="mf-btn POST"   data-m="POST">POST</button>
+          <button class="mf-btn PUT"    data-m="PUT">PUT</button>
+          <button class="mf-btn PATCH"  data-m="PATCH">PATCH</button>
+          <button class="mf-btn DELETE" data-m="DELETE">DELETE</button>
+        </div>
+        <input class="filter-search" id="filterSearch" placeholder="Search endpoints…">
+        <span class="filter-count" id="filterCount"></span>
+      </div>
+
+      <!-- ─── 1. Overview ─── -->
+      <div class="doc-page active" id="page-overview">
+        <div class="doc-inner">
+          <div class="page-hd">
+            <h2>API Overview</h2>
+            <p class="page-desc">Project metadata, base URL, architecture, and endpoint inventory.</p>
+          </div>
+
+          <div class="info-cards4" id="ovCards"></div>
+
+          <div class="doc-panel" id="ovProjectTable"></div>
+
+          <div class="doc-panel">
+            <div class="panel-hd">
+              <h3>Endpoint Inventory</h3>
+              <span class="panel-badge" id="epCountBadge">0 endpoints</span>
+            </div>
+            <div class="inv-filter-row">
+              <div class="mfilters-sm" id="invMfilters">
+                <button class="mf-sm active" data-m="">All</button>
+                <button class="mf-sm GET"    data-m="GET">GET</button>
+                <button class="mf-sm POST"   data-m="POST">POST</button>
+                <button class="mf-sm PUT"    data-m="PUT">PUT</button>
+                <button class="mf-sm PATCH"  data-m="PATCH">PATCH</button>
+                <button class="mf-sm DELETE" data-m="DELETE">DELETE</button>
+              </div>
+              <input class="inv-search" id="invSearch" placeholder="Filter path or summary…">
+            </div>
+            <div class="table-wrap">
+              <table class="doc-table">
+                <thead>
+                  <tr><th>Method</th><th>Path</th><th>Summary</th><th>Controller</th><th>Auth</th><th>Middleware</th></tr>
+                </thead>
+                <tbody id="invBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="doc-panel">
+            <div class="panel-hd"><h3>Resource Groups</h3></div>
+            <div class="tag-cloud" id="ovTagCloud"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── 2. Authentication ─── -->
+      <div class="doc-page" id="page-auth">
+        <div class="doc-inner">
+          <div class="page-hd">
+            <h2>Authentication &amp; Authorization</h2>
+            <p class="page-desc">Auth method, login flow, required headers, token lifecycle.</p>
+          </div>
+          <div class="doc-panel" id="authContent"></div>
+          <div class="doc-panel">
+            <div class="panel-hd"><h3>Authentication Matrix</h3></div>
+            <div class="table-wrap">
+              <table class="doc-table">
+                <thead><tr><th>Method</th><th>Path</th><th>Auth Required</th><th>Middleware</th></tr></thead>
+                <tbody id="authMatrix"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── 3. Endpoints (split view) ─── -->
+      <div class="doc-page" id="page-endpoint" style="overflow:hidden">
+        <div class="ep-split">
+          <div class="ep-list-col" id="epListItems"></div>
+          <div class="ep-detail-col" id="epDetailCol">
+            <div class="ep-placeholder" id="epPlaceholder">
+              <div class="ep-ph-icon">←</div>
+              <div class="ep-ph-title">Select an endpoint</div>
+              <div class="ep-ph-sub">Click any row to inspect parameters, body schema, validation rules, responses, cURL samples, and source context.</div>
+            </div>
+            <div id="epDetailContent" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── 4. Data Models ─── -->
+      <div class="doc-page" id="page-models">
+        <div class="doc-inner">
+          <div class="page-hd">
+            <h2>Data Models</h2>
+            <p class="page-desc">Entity definitions, database tables, relationships, field constraints.</p>
+          </div>
+          <div id="modelsContent"></div>
+        </div>
+      </div>
+
+      <!-- ─── 5. Business Logic ─── -->
+      <div class="doc-page" id="page-bizlogic">
+        <div class="doc-inner">
+          <div class="page-hd">
+            <h2>Business Logic</h2>
+            <p class="page-desc">Workflow explanations, processing steps, cross-endpoint dependencies.</p>
+          </div>
+          <div id="bizContent"></div>
+        </div>
+      </div>
+
+      <!-- ─── 6. Security ─── -->
+      <div class="doc-page" id="page-security">
+        <div class="doc-inner">
+          <div class="page-hd">
+            <h2>Security</h2>
+            <p class="page-desc">Auth guards, rate limiting, CORS, security best practices.</p>
+          </div>
+          <div id="secContent"></div>
+        </div>
+      </div>
+
+      <!-- ─── 7. API Testing ─── -->
+      <div class="doc-page" id="page-testing">
+        <div class="doc-inner">
+          <div class="page-hd">
+            <h2>API Testing</h2>
+            <p class="page-desc">cURL examples, Postman guide, request/response samples.</p>
+          </div>
+          <div id="testContent"></div>
+        </div>
+      </div>
+
+      <!-- ─── 8. Error Handling ─── -->
+      <div class="doc-page" id="page-errors">
+        <div class="doc-inner">
+          <div class="page-hd">
+            <h2>Error Handling</h2>
+            <p class="page-desc">HTTP status codes, validation errors, exception formats, troubleshooting guide.</p>
+          </div>
+          <div id="errContent"></div>
+        </div>
+      </div>
+
+      <!-- ─── 9. Performance ─── -->
+      <div class="doc-page" id="page-perf">
+        <div class="doc-inner">
+          <div class="page-hd">
+            <h2>Performance &amp; Operations</h2>
+            <p class="page-desc">Pagination, filtering, sorting, caching, performance tips.</p>
+          </div>
+          <div id="perfContent"></div>
+        </div>
+      </div>
+
+      <!-- ─── 10. Deployment ─── -->
+      <div class="doc-page" id="page-deploy">
+        <div class="doc-inner">
+          <div class="page-hd">
+            <h2>Deployment Information</h2>
+            <p class="page-desc">Environment variables, configuration requirements, external services, dependencies.</p>
+          </div>
+          <div id="deployContent"></div>
+        </div>
+      </div>
+
+      <!-- ─── 11. API Summary ─── -->
+      <div class="doc-page" id="page-summary">
+        <div class="doc-inner">
+          <div class="page-hd">
+            <h2>API Summary</h2>
+            <p class="page-desc">Full endpoint inventory, authentication matrix, feature coverage.</p>
+          </div>
+          <div id="summaryContent"></div>
+        </div>
+      </div>
+
+    </div><!-- /viewDocs -->
+
+  </div><!-- /main-col -->
+</div><!-- /shell -->
+
+<script src="/app.js"></script>
+</body>
+</html>
