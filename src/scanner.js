@@ -11,7 +11,7 @@ const SPEC_EXTS  = new Set([".yaml", ".yml"]);
    separately in extractRoutesFromFile via buildPrefixTree)
 ═══════════════════════════════════════════════════════════════ */
 const ROUTE_PATTERNS = [
-  /* Express / Fastify / Node.js */
+  /* Express / Fastify / Node.js - Simple pattern */
   {
     name: "express",
     regex: /\b(?:app|router|route|server)\s*\.\s*(get|post|put|patch|delete|options|head)\s*\(\s*["'`]([^"'`]+)["'`]/gi,
@@ -165,7 +165,7 @@ function buildPrefixMap(content) {
   /* (Handled implicitly: we iterate until stable — see resolveChainedPrefixes below) */
 
   /* 3. Laravel: Route::prefix('v1')->group(fn) or Route::group(['prefix' => 'v1'], fn) */
-  for (const m of content.matchAll(/Route::(?:group\s*\(\s*\[['"]prefix['"]\s*=>\s*['"]([^'"]+)['"]/g)) {
+  for (const m of content.matchAll(/Route::(?:group\s*\(\s*\[['"]prefix['"]\s*=>\s*['"]([^'"]+)['"])/g)) {
     if (!prefixMap["__laravel_prefix__"]) prefixMap["__laravel_prefix__"] = normalizePath(m[1]);
   }
   for (const m of content.matchAll(/Route::prefix\s*\(\s*['"]([^'"]+)['"]\s*\)/g)) {
@@ -603,6 +603,12 @@ function extractRoutesFromFile(file, allFiles) {
       const rawPath = match[pattern.pathGroup];
       if (!rawPath) continue;
 
+      /* Extract middleware from context for Express routes */
+      const context = getContext(content, match.index);
+      const extractedMiddleware = pattern.name === "express" 
+        ? extractMiddlewareFromContext(context)
+        : (pattern.middlewareGroup ? extractMiddlewareFromMatch(match[pattern.middlewareGroup]) : []);
+
       /* Resolve prefix for this router variable */
       const routerVar = extractRouterVarName(content, match.index);
       const prefix    = resolvePrefix(routerVar, prefixMap);
@@ -612,7 +618,6 @@ function extractRoutesFromFile(file, allFiles) {
       const effectivePrefix = prefix || groupPrefix;
       const fullPath = normalizePath(effectivePrefix + "/" + rawPath);
 
-      const context    = getContext(content, match.index);
       const controller = extractLaravelController(context);
       const action     = extractLaravelAction(context);
 
@@ -626,7 +631,8 @@ function extractRoutesFromFile(file, allFiles) {
         frameworkHint: pattern.name,
         rawContext: context,
         controller,
-        action
+        action,
+        extractedMiddleware
       }));
 
       /* If multiple methods from the same match (FastAPI `methods=[...]`) */
@@ -640,13 +646,64 @@ function extractRoutesFromFile(file, allFiles) {
           confidence: 0.85,
           frameworkHint: pattern.name,
           rawContext: context,
-          controller, action
+          controller, action,
+          extractedMiddleware
         }));
       }
     }
   }
 
   return endpoints;
+}
+
+function extractMiddlewareFromContext(context) {
+  const middleware = [];
+  
+  /* Look for common middleware patterns in Express routes */
+  const patterns = [
+    /\b(requireAuth|auth|authenticate|jwt|passport|verifyToken)\b/gi,
+    /\b(body|check|param|query|header)\s*\(/gi,
+    /\b([A-Za-z_][\w]*)\s*,\s*(?:async\s+)?\(/gi
+  ];
+  
+  for (const pattern of patterns) {
+    const matches = [...context.matchAll(pattern)];
+    for (const match of matches) {
+      const mw = match[1];
+      if (mw && !middleware.includes(mw) && !/^(async|function|req|res|next)$/.test(mw)) {
+        middleware.push(mw);
+      }
+    }
+  }
+  
+  return middleware;
+}
+
+function extractMiddlewareFromMatch(middlewareRaw) {
+  if (!middlewareRaw) return [];
+  
+  /* Clean up the middleware string and extract function names */
+  const middleware = [];
+  
+  /* Handle single middleware: requireAuth */
+  if (/^[A-Za-z_][\w]*$/.test(middlewareRaw.trim())) {
+    middleware.push(middlewareRaw.trim());
+  }
+  
+  /* Handle array of middleware: [auth, validate] */
+  const arrayMatch = middlewareRaw.match(/\[([^\]]+)\]/);
+  if (arrayMatch) {
+    const items = arrayMatch[1].split(',').map(s => s.trim().replace(/['"]/g, ''));
+    middleware.push(...items);
+  }
+  
+  /* Handle function calls: body("email").isEmail() */
+  const functionCalls = middlewareRaw.match(/([A-Za-z_][\w]*)\s*\(/g);
+  if (functionCalls) {
+    middleware.push(...functionCalls.map(f => f.replace(/\s*\($/, '')));
+  }
+  
+  return middleware.filter(m => m && m.length > 0);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -783,10 +840,14 @@ function enrichEndpoint(ep) {
   const actionInfo     = (ep.action && controllerInfo.methods) ? (controllerInfo.methods[ep.action] || {}) : {};
   const docblock       = ep.docblock || actionInfo.docblock || "";
 
-  const effectiveMiddleware = computeEffectiveMiddleware(
-    controllerInfo.middleware || ep.controllerMiddleware || [], ep.action || ""
-  );
-  const authRequired = effectiveMiddleware.some(m => /auth/i.test(m)) || detectAuth(ep.rawContext);
+  /* Combine controller middleware with extracted middleware */
+  const allMiddleware = [
+    ...(controllerInfo.middleware || ep.controllerMiddleware || []),
+    ...(ep.extractedMiddleware || [])
+  ];
+
+  const effectiveMiddleware = computeEffectiveMiddleware(allMiddleware, ep.action || "");
+  const authRequired = effectiveMiddleware.some(m => /auth|requireAuth|jwt|bearer/i.test(m)) || detectAuth(ep.rawContext);
 
   const queryParams     = extractQueryParams(ep.rawContext, ep.path);
   const headers         = extractHeaders(ep.rawContext, authRequired);
@@ -1218,7 +1279,7 @@ function extractDataModels(files) {
         for (const m of content.matchAll(/public\s+function\s+(\w+)\s*\(\s*\)\s*\{[^}]*\$(this)->(hasMany|hasOne|belongsTo|belongsToMany|morphTo|morphMany)\s*\(\s*(\w+)::class/g)) {
           relations.push(`${m[3]}(${m[4]})`);
         }
-        models.push({ name: modelName, table: tableMatch ? tableMatch[1] : toSnakePlural(modelName), fields, relations, source: f.path });
+        models.push({ name: modelName, table: tableMatch ? tableMatch[1] : toSnakePlural(modelName), fields, relations, source: path.basename(f.path) });
       }
     }
 
@@ -1234,7 +1295,7 @@ function extractDataModels(files) {
         for (const col of content.matchAll(/@Column\s*\(\s*(?:\{[^}]*\})?\s*\)\s*\n?\s*([A-Za-z_][\w]*)\s*[!?]?\s*:\s*([\w<>[\]|]+)/g)) {
           fields.push({ name: col[1], type: tsTypeToJsonType(col[2]), nullable: false, description: `Column: ${col[1]}.` });
         }
-        models.push({ name: modelName, table, fields, relations: [], source: f.path });
+        models.push({ name: modelName, table, fields, relations: [], source: path.basename(f.path) });
       }
     }
 
@@ -1247,10 +1308,22 @@ function extractDataModels(files) {
         if (seen.has(modelName)) continue;
         seen.add(modelName);
         const fields = [];
-        for (const col of m[2].matchAll(/([A-Za-z_][\w]*)\s*:\s*\{?\s*type:\s*(\w+)/g)) {
+        
+        /* Handle both shorthand and full syntax */
+        // Full syntax: fieldName: { type: String, required: true }
+        for (const col of m[2].matchAll(/([A-Za-z_][\w]*)\s*:\s*\{\s*type:\s*(\w+)/g)) {
           fields.push({ name: col[1], type: mongooseTypeToJson(col[2]), nullable: true, description: `Field: ${col[1]}.` });
         }
-        models.push({ name: modelName, table: toSnakePlural(modelName), fields, relations: [], source: f.path });
+        
+        // Shorthand syntax: fieldName: String
+        for (const col of m[2].matchAll(/([A-Za-z_][\w]*)\s*:\s*(\w+)(?!\s*[,}])/g)) {
+          // Skip if already found in full syntax
+          if (!fields.some(f => f.name === col[1])) {
+            fields.push({ name: col[1], type: mongooseTypeToJson(col[2]), nullable: true, description: `Field: ${col[1]} (shorthand).` });
+          }
+        }
+        
+        models.push({ name: modelName, table: toSnakePlural(modelName), fields, relations: [], source: path.basename(f.path) });
       }
     }
   }
